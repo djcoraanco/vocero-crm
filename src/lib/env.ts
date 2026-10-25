@@ -104,6 +104,14 @@ function developmentDefaults(): Record<string, string> {
     (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
   return {
     APP_BASE_URL: baseUrl,
+    // v0 injects Neon under DATABASE_URL, while local previews may expose one
+    // of the standard Postgres aliases. Keep the dev server bootable when the
+    // env file is still being synchronized, without weakening production.
+    DATABASE_URL:
+      process.env.DATABASE_URL ||
+      process.env.POSTGRES_URL ||
+      process.env.POSTGRES_PRISMA_URL ||
+      "postgresql://localhost:5432/vocero",
     BETTER_AUTH_SECRET: "vocero-preview-development-secret",
     ENCRYPTION_KEY: Buffer.alloc(32).toString("base64"),
     META_WEBHOOK_VERIFY_TOKEN: "vocero-preview-token",
