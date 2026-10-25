@@ -94,6 +94,22 @@ const BUILD_PLACEHOLDERS: Record<string, string> = {
   META_WEBHOOK_VERIFY_TOKEN: "placeholder-verify-token",
 };
 
+/**
+ * v0 previews can have a provisioned database without the optional runtime
+ * secrets configured yet. Keep the preview usable with isolated development
+ * values, while still requiring every secret in production.
+ */
+function developmentDefaults(): Record<string, string> {
+  const baseUrl = process.env.APP_BASE_URL ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+  return {
+    APP_BASE_URL: baseUrl,
+    BETTER_AUTH_SECRET: "vocero-preview-development-secret",
+    ENCRYPTION_KEY: Buffer.alloc(32).toString("base64"),
+    META_WEBHOOK_VERIFY_TOKEN: "vocero-preview-token",
+  };
+}
+
 let cached: Env | null = null;
 
 /**
@@ -110,9 +126,12 @@ export function safeParseEnv(source: Record<string, string | undefined>) {
 export function getEnv(): Env {
   if (cached) return cached;
   const isBuild = process.env.NEXT_PHASE === "phase-production-build";
+  const isDevelopment = process.env.NODE_ENV !== "production";
   const source = isBuild
     ? { ...BUILD_PLACEHOLDERS, ...stripEmpty(process.env) }
-    : process.env;
+    : isDevelopment
+      ? { ...developmentDefaults(), ...stripEmpty(process.env) }
+      : process.env;
   const parsed = safeParseEnv(source);
   if (!parsed.success) {
     const missing = parsed.error.issues
