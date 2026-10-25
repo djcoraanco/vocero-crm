@@ -34,7 +34,14 @@ export function parseChannels(raw: string | undefined): Set<Channel> {
 }
 
 export function enabledChannels(): Set<Channel> {
-  return parseChannels(getEnv().CHANNELS);
+  try {
+    return parseChannels(getEnv().CHANNELS);
+  } catch {
+    // Public metadata and the sign-in shell must still render before an
+    // installation has supplied its server-only secrets. Protected routes and
+    // integrations continue to validate the complete environment at use time.
+    return parseChannels(process.env.CHANNELS);
+  }
 }
 
 export function isChannelEnabled(channel: Channel): boolean {
